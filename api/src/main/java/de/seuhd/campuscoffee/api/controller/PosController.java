@@ -43,7 +43,14 @@ public class PosController {
     }
 
     // TODO: Implement a new GET endpoint that supports filtering POS by name, e.g., /filter?name=Schmelzpunkt
-
+    @GetMapping("/filter")
+    public ResponseEntity<PosDto> getByName(@RequestParam(name = "name") String name) {
+        return ResponseEntity.ok(
+                posDtoMapper.fromDomain(
+                        posService.getByName(name)
+                )
+        );
+    }
     @PostMapping("")
     public ResponseEntity<PosDto> create(
             @RequestBody PosDto posDto) {
