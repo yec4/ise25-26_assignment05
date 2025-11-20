@@ -92,8 +92,11 @@ public class CucumberPosSteps {
     }
 
     // TODO: Add Given step for new scenario
-
-    // When -----------------------------------------------------------------------
+    @Given("the following POS exist:")
+    public void theFollowingPosExist(List<PosDto> posList) {
+        createdPosList = createPos(posList);
+        assertThat(createdPosList).hasSize(posList.size());
+    }
 
     @When("I insert POS with the following elements")
     public void insertPosWithTheFollowingValues(List<PosDto> posList) {
@@ -102,9 +105,41 @@ public class CucumberPosSteps {
     }
 
     // TODO: Add When step for new scenario
+    @When("I update the POS with name {string} to have description {string}")
+    public void iUpdateThePosWithNameToHaveDescription(String name, String newDescription) {
+        // 1. in createdPosList find POS with name
+        PosDto posToUpdate = createdPosList.stream()
+                .filter(pos -> pos.name().equals(name))   // getName() not, name()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "POS with name " + name + " not found in createdPosList"));
 
-    // Then -----------------------------------------------------------------------
+        // 2. with new description create new PosDto (immutable, no setter )
+        PosDto request =
+                PosDto.builder()
+                        .id(posToUpdate.id())               // getId() not, id()
+                        .name(posToUpdate.name())
+                        .description(newDescription)
+                        .type(posToUpdate.type())
+                        .campus(posToUpdate.campus())
+                        .street(posToUpdate.street())
+                        .houseNumber(posToUpdate.houseNumber())
+                        .postalCode(posToUpdate.postalCode())
+                        .city(posToUpdate.city())
+                        .build();
 
+        // 3. PUT /api/pos/{id} update call
+        updatedPos =
+                RestAssured.given()
+                        .contentType("application/json")
+                        .body(request)
+                        .when()
+                        .put("/api/pos/" + posToUpdate.id())
+                        .then()
+                        .statusCode(200)
+                        .extract()
+                        .as(PosDto.class);
+    }
     @Then("the POS list should contain the same elements in the same order")
     public void thePosListShouldContainTheSameElementsInTheSameOrder() {
         List<PosDto> retrievedPosList = retrievePos();
@@ -114,4 +149,19 @@ public class CucumberPosSteps {
     }
 
     // TODO: Add Then step for new scenario
+    @Then("the POS with name {string} should have description {string}")
+    public void thePosWithNameShouldHaveDescription(String name, String expectedDescription) {
+        assertThat(updatedPos.name()).isEqualTo(name);
+        assertThat(updatedPos.description()).isEqualTo(expectedDescription);
+
+        /*
+
+        List<PosDto> retrievedPosList = retrievePos();
+        PosDto fromApi = retrievedPosList.stream()
+                .filter(pos -> pos.name().equals(name))
+                .findFirst()
+                .orElseThrow();
+        assertThat(fromApi.description()).isEqualTo(expectedDescription);
+        */
+    }
 }
